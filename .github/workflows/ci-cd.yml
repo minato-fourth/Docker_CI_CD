@@ -94,6 +94,20 @@ jobs:
       
 
 
+    - name: Debug Docker credentials
+      if: github.event_name != 'pull_request'
+      run: |
+        echo "Docker username length: ${#DOCKER_USERNAME}"
+        echo "Docker password length: ${#DOCKER_PASSWORD}"
+        if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+          echo "❌ Docker credentials missing!"
+          exit 1
+        fi
+        echo "✅ Docker credentials found"
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
     - name: Log in to Docker Hub
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
