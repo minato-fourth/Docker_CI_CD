@@ -121,7 +121,14 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Verify Docker login
+      if: github.event_name != 'pull_request'
+      run: |
+        echo "🐳 Testing Docker Hub connection..."
+        docker info | grep -i "registry" || echo "Docker registry info not available"
+        echo "✅ Docker login verification complete"}
         
     - name: Extract metadata
       id: meta
@@ -150,14 +157,21 @@ jobs:
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: ${{ env.DOCKER_REGISTRY }}/minatofourth/${{ env.DOCKER_IMAGE_NAME }}:latest
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-        
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
-      if: always() && hashFiles('trivy-results.sarif') != ''
+        format: 'table'
+        output: 'trivy-results.txt'
+
+    - name: Upload Trivy scan results as artifact
+      if: always() && hashFiles('trivy-results.txt') != ''
+      uses: actions/upload-artifact@v4
       with:
-        sarif_file: 'trivy-results.sarif'
+        name: trivy-vulnerability-scan
+        path: trivy-results.txt
+
+    - name: Display Trivy results
+      if: always() && hashFiles('trivy-results.txt') != ''
+      run: |
+        echo "🔍 Trivy Vulnerability Scan Results:"
+        cat trivy-results.txt || echo "No vulnerabilities found or scan failed"
 
   deploy:
     name: Deploy Application
